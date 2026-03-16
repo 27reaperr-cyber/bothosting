@@ -1,0 +1,25 @@
+version: "3.9"
+
+services:
+  bothost:
+    build: .
+    container_name: telegram-bot-hosting
+    restart: unless-stopped
+    env_file: .env
+    volumes:
+      # Persistent storage for bots and database
+      - ./bots:/app/bots
+      - ./data:/app/data
+    # Resource limits for the hosting container itself
+    deploy:
+      resources:
+        limits:
+          cpus: "2.0"
+          memory: 1G
+        reservations:
+          memory: 128M
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
