@@ -58,6 +58,34 @@ Path("bots").mkdir(exist_ok=True)
 Path("tmp").mkdir(exist_ok=True)
 
 # ──────────────────────────────────────────────
+# Custom symbols (replacing emoji)
+# ──────────────────────────────────────────────
+SYM_BOT         = "⬡"   # бот
+SYM_STATS       = "◈"   # статистика
+SYM_CONSOLE     = "⌨"   # консоль
+SYM_SETTINGS    = "✹"   # настройки
+SYM_PLUS        = "✚"   # создать/добавить
+SYM_CHECK       = "✔"   # успех
+SYM_CROSS       = "✕"   # ошибка/неудача
+SYM_WAIT        = "⋯"   # ожидание
+SYM_LOCK        = "☒"   # запрет/блокировка
+SYM_USER        = "☻"   # пользователь
+SYM_ADMIN       = "♔"   # администратор
+SYM_DELETE      = "⌫"   # удалить
+SYM_FOLDER      = "🗀"   # папка
+SYM_FILE        = "🗋"   # файл
+SYM_EDIT        = "✎"   # редактировать
+SYM_REFRESH     = "↻"   # обновить/перезапуск
+SYM_PACKAGE     = "▣"   # пакет/бот (для сообщений)
+SYM_WARNING     = "☡"   # предупреждение
+SYM_DISK        = "⏺"   # диск/память
+SYM_CPU         = "⎔"   # процессор
+SYM_LAUNCH      = "⇧"   # запуск/лимит
+SYM_STOP        = "■"   # стоп
+SYM_LIST        = "≡"   # список
+SYM_DOWNLOAD    = "⇩"   # скачивание
+
+# ──────────────────────────────────────────────
 # FSM States
 # ──────────────────────────────────────────────
 class CreateBot(StatesGroup):
@@ -91,7 +119,7 @@ class UserMiddleware(BaseMiddleware):
             db.upsert_user(user.id, user.username or "", user.first_name or "")
             if db.is_banned(user.id):
                 if hasattr(event, "answer"):
-                    await event.answer("🚫 Вы заблокированы в системе.")
+                    await event.answer(f"{SYM_LOCK} Вы заблокированы в системе.")
                 return
         return await handler(event, data)
 
@@ -104,7 +132,7 @@ class RateLimitMiddleware(BaseMiddleware):
                 msg = event if isinstance(event, Message) else getattr(event, "message", None)
                 if msg:
                     await msg.answer(
-                        "⏳ <b>Слишком много запросов!</b>\n\n"
+                        f"{SYM_WAIT} <b>Слишком много запросов!</b>\n\n"
                         "Подождите немного и попробуйте снова.\n"
                         "Лимит: 10 действий в минуту.",
                         parse_mode=ParseMode.HTML
@@ -135,31 +163,31 @@ async def cmd_start(msg: Message):
     )
 
 
-# ── 🤖 Мои боты ───────────────────────────────
-@router.message(F.text == "🤖 Мои боты")
+# ── Мои боты ───────────────────────────────
+@router.message(F.text == f"{SYM_BOT} Мои боты")
 async def show_my_bots(msg: Message):
     user_id = msg.from_user.id
     bots = db.get_user_bots(user_id)
     if not bots:
         await msg.answer(
-            "🤖 <b>Мои боты</b>\n\n"
+            f"{SYM_BOT} <b>Мои боты</b>\n\n"
             "У вас пока нет ботов.\n"
-            "Нажмите <b>➕ Создать бота</b>, чтобы добавить первого!",
+            f"Нажмите <b>{SYM_PLUS} Создать бота</b>, чтобы добавить первого!",
             parse_mode=ParseMode.HTML,
             reply_markup=utils.main_keyboard(),
         )
         return
 
     await msg.answer(
-        f"🤖 <b>Мои боты</b> ({len(bots)})\n\n"
+        f"{SYM_BOT} <b>Мои боты</b> ({len(bots)})\n\n"
         "Выберите бота для управления:",
         reply_markup=utils.bots_list_keyboard(bots),
         parse_mode=ParseMode.HTML,
     )
 
 
-# ── 📊 Статус системы ─────────────────────────
-@router.message(F.text == "📊 Статус системы")
+# ── Статус системы ─────────────────────────
+@router.message(F.text == f"{SYM_STATS} Статус системы")
 async def show_status(msg: Message):
     stats = runner.get_system_stats()
     all_bots = db.get_user_bots(msg.from_user.id)
@@ -170,15 +198,15 @@ async def show_status(msg: Message):
     )
 
 
-# ── 🖥 Консоль ────────────────────────────────
-@router.message(F.text == "🖥 Консоль")
+# ── Консоль ────────────────────────────────
+@router.message(F.text == f"{SYM_CONSOLE} Консоль")
 async def show_console(msg: Message):
     user_id = msg.from_user.id
     bots = db.get_user_bots(user_id)
     running = [b for b in bots if b["status"] == "running"]
     if not running:
         await msg.answer(
-            "🖥 <b>Консоль</b>\n\nНет запущенных ботов.",
+            f"{SYM_CONSOLE} <b>Консоль</b>\n\nНет запущенных ботов.",
             parse_mode=ParseMode.HTML
         )
         return
@@ -193,8 +221,8 @@ async def show_console(msg: Message):
     )
 
 
-# ── ⚙ Настройки ──────────────────────────────
-@router.message(F.text == "⚙ Настройки")
+# ── Настройки ──────────────────────────────
+@router.message(F.text == f"{SYM_SETTINGS} Настройки")
 async def show_settings(msg: Message):
     user_id = msg.from_user.id
     user = db.get_user(user_id)
@@ -202,14 +230,14 @@ async def show_settings(msg: Message):
     max_bots = user.get("max_bots", MAX_BOTS_PER_USER) if user else MAX_BOTS_PER_USER
 
     text = (
-        f"⚙ <b>Настройки</b>\n\n"
-        f"👤 ID: <code>{user_id}</code>\n"
-        f"🤖 Ботов: {len(bots)} / {max_bots}\n"
-        f"📊 Лимит действий: 10/мин\n"
-        f"🚀 Лимит запусков: 3/мин\n"
+        f"{SYM_SETTINGS} <b>Настройки</b>\n\n"
+        f"{SYM_USER} ID: <code>{user_id}</code>\n"
+        f"{SYM_BOT} Ботов: {len(bots)} / {max_bots}\n"
+        f"{SYM_STATS} Лимит действий: 10/мин\n"
+        f"{SYM_LAUNCH} Лимит запусков: 3/мин\n"
     )
     if user_id in ADMIN_IDS:
-        text += "\n👑 <b>Режим администратора</b>"
+        text += f"\n{SYM_ADMIN} <b>Режим администратора</b>"
 
     await msg.answer(text, parse_mode=ParseMode.HTML, reply_markup=utils.main_keyboard())
 
@@ -222,7 +250,7 @@ async def cb_bot_open(cb: CallbackQuery):
     bot_id = int(cb.data.split(":")[1])
     bot_data = db.get_bot(bot_id)
     if not bot_data or bot_data["user_id"] != cb.from_user.id:
-        await cb.answer("❌ Бот не найден", show_alert=True)
+        await cb.answer(f"{SYM_CROSS} Бот не найден", show_alert=True)
         return
 
     await cb.message.edit_text(
@@ -237,10 +265,10 @@ async def cb_bot_open(cb: CallbackQuery):
 async def cb_bots_list(cb: CallbackQuery):
     bots = db.get_user_bots(cb.from_user.id)
     if not bots:
-        await cb.message.edit_text("🤖 Список ботов пуст.")
+        await cb.message.edit_text(f"{SYM_BOT} Список ботов пуст.")
         return
     await cb.message.edit_text(
-        f"🤖 <b>Мои боты</b> ({len(bots)})\n\nВыберите бота:",
+        f"{SYM_BOT} <b>Мои боты</b> ({len(bots)})\n\nВыберите бота:",
         reply_markup=utils.bots_list_keyboard(bots),
         parse_mode=ParseMode.HTML,
     )
@@ -255,15 +283,15 @@ async def cb_bot_start(cb: CallbackQuery):
     bot_id = int(cb.data.split(":")[1])
     bot_data = db.get_bot(bot_id)
     if not bot_data or bot_data["user_id"] != cb.from_user.id:
-        await cb.answer("❌ Доступ запрещён", show_alert=True)
+        await cb.answer(f"{SYM_CROSS} Доступ запрещён", show_alert=True)
         return
 
     if not db.check_rate_limit(cb.from_user.id, "bot_start"):
-        await cb.answer("⏳ Лимит запусков: 3/мин. Подождите.", show_alert=True)
+        await cb.answer(f"{SYM_WAIT} Лимит запусков: 3/мин. Подождите.", show_alert=True)
         return
 
     await cb.message.edit_text(
-        f"📦 <b>{bot_data['name']}</b>\n\n⏳ Запускается...",
+        f"{SYM_PACKAGE} <b>{bot_data['name']}</b>\n\n{SYM_WAIT} Запускается...",
         parse_mode=ParseMode.HTML,
     )
     await cb.answer()
@@ -276,7 +304,7 @@ async def _start_bot_task(cb: CallbackQuery, bot_data: dict, bot_id: int):
     ok, msg = await runner.start_bot(user_id, bot_id)
     bot_data = db.get_bot(bot_id)
 
-    status_msg = f"✅ {msg}" if ok else f"❌ {msg}"
+    status_msg = f"{SYM_CHECK} {msg}" if ok else f"{SYM_CROSS} {msg}"
     text = utils.format_bot_card(bot_data) + f"\n\n{status_msg}"
     try:
         await cb.message.edit_text(
@@ -293,14 +321,14 @@ async def cb_bot_stop(cb: CallbackQuery):
     bot_id = int(cb.data.split(":")[1])
     bot_data = db.get_bot(bot_id)
     if not bot_data or bot_data["user_id"] != cb.from_user.id:
-        await cb.answer("❌ Доступ запрещён", show_alert=True)
+        await cb.answer(f"{SYM_CROSS} Доступ запрещён", show_alert=True)
         return
 
-    await cb.answer("⏹ Останавливаем...")
+    await cb.answer(f"{SYM_STOP} Останавливаем...")
     ok, msg = await runner.stop_bot(bot_id)
     bot_data = db.get_bot(bot_id)
 
-    status_msg = f"✅ {msg}" if ok else f"❌ {msg}"
+    status_msg = f"{SYM_CHECK} {msg}" if ok else f"{SYM_CROSS} {msg}"
     try:
         await cb.message.edit_text(
             utils.format_bot_card(bot_data) + f"\n\n{status_msg}",
@@ -316,15 +344,15 @@ async def cb_bot_restart(cb: CallbackQuery):
     bot_id = int(cb.data.split(":")[1])
     bot_data = db.get_bot(bot_id)
     if not bot_data or bot_data["user_id"] != cb.from_user.id:
-        await cb.answer("❌ Доступ запрещён", show_alert=True)
+        await cb.answer(f"{SYM_CROSS} Доступ запрещён", show_alert=True)
         return
 
     if not db.check_rate_limit(cb.from_user.id, "bot_start"):
-        await cb.answer("⏳ Лимит. Подождите.", show_alert=True)
+        await cb.answer(f"{SYM_WAIT} Лимит. Подождите.", show_alert=True)
         return
 
     await cb.message.edit_text(
-        f"📦 <b>{bot_data['name']}</b>\n\n🔄 Перезапускается...",
+        f"{SYM_PACKAGE} <b>{bot_data['name']}</b>\n\n{SYM_REFRESH} Перезапускается...",
         parse_mode=ParseMode.HTML,
     )
     await cb.answer()
@@ -335,7 +363,7 @@ async def _restart_bot_task(cb: CallbackQuery, bot_id: int):
     user_id = cb.from_user.id
     ok, msg = await runner.restart_bot(user_id, bot_id)
     bot_data = db.get_bot(bot_id)
-    status_msg = f"✅ {msg}" if ok else f"❌ {msg}"
+    status_msg = f"{SYM_CHECK} {msg}" if ok else f"{SYM_CROSS} {msg}"
     try:
         await cb.message.edit_text(
             utils.format_bot_card(bot_data) + f"\n\n{status_msg}",
@@ -354,7 +382,7 @@ async def cb_bot_logs(cb: CallbackQuery):
     bot_id = int(cb.data.split(":")[1])
     bot_data = db.get_bot(bot_id)
     if not bot_data or bot_data["user_id"] != cb.from_user.id:
-        await cb.answer("❌ Доступ запрещён", show_alert=True)
+        await cb.answer(f"{SYM_CROSS} Доступ запрещён", show_alert=True)
         return
 
     logs = runner.get_logs(cb.from_user.id, bot_id)
@@ -374,7 +402,7 @@ async def cb_console_refresh(cb: CallbackQuery):
     bot_id = int(cb.data.split(":")[1])
     bot_data = db.get_bot(bot_id)
     if not bot_data or bot_data["user_id"] != cb.from_user.id:
-        await cb.answer("❌")
+        await cb.answer(f"{SYM_CROSS}")
         return
     logs = runner.get_logs(cb.from_user.id, bot_id)
     try:
@@ -385,7 +413,7 @@ async def cb_console_refresh(cb: CallbackQuery):
         )
     except Exception:
         pass
-    await cb.answer("🔄 Обновлено")
+    await cb.answer(f"{SYM_REFRESH} Обновлено")
 
 
 # ──────────────────────────────────────────────
@@ -396,7 +424,7 @@ async def cb_bot_env(cb: CallbackQuery):
     bot_id = int(cb.data.split(":")[1])
     bot_data = db.get_bot(bot_id)
     if not bot_data or bot_data["user_id"] != cb.from_user.id:
-        await cb.answer("❌")
+        await cb.answer(f"{SYM_CROSS}")
         return
 
     env_vars = db.get_env(bot_id)
@@ -413,13 +441,13 @@ async def cb_env_add(cb: CallbackQuery, state: FSMContext):
     bot_id = int(cb.data.split(":")[1])
     bot_data = db.get_bot(bot_id)
     if not bot_data or bot_data["user_id"] != cb.from_user.id:
-        await cb.answer("❌")
+        await cb.answer(f"{SYM_CROSS}")
         return
 
     await state.set_state(EditEnv.waiting_key)
     await state.update_data(bot_id=bot_id, mode="add")
     await cb.message.edit_text(
-        "✏ <b>Добавить переменную</b>\n\nВведите <b>имя</b> переменной (KEY):",
+        f"{SYM_EDIT} <b>Добавить переменную</b>\n\nВведите <b>имя</b> переменной (KEY):",
         parse_mode=ParseMode.HTML,
         reply_markup=utils.cancel_keyboard(),
     )
@@ -432,13 +460,13 @@ async def cb_env_edit_var(cb: CallbackQuery, state: FSMContext):
     bot_id, key = int(parts[1]), parts[2]
     bot_data = db.get_bot(bot_id)
     if not bot_data or bot_data["user_id"] != cb.from_user.id:
-        await cb.answer("❌")
+        await cb.answer(f"{SYM_CROSS}")
         return
 
     await state.set_state(EditEnv.waiting_value)
     await state.update_data(bot_id=bot_id, env_key=key)
     await cb.message.edit_text(
-        f"✏ <b>Редактировать</b> <code>{key}</code>\n\nВведите новое значение:",
+        f"{SYM_EDIT} <b>Редактировать</b> <code>{key}</code>\n\nВведите новое значение:",
         parse_mode=ParseMode.HTML,
         reply_markup=utils.cancel_keyboard(),
     )
@@ -451,7 +479,7 @@ async def cb_env_del(cb: CallbackQuery):
     bot_id, key = int(parts[1]), parts[2]
     bot_data = db.get_bot(bot_id)
     if not bot_data or bot_data["user_id"] != cb.from_user.id:
-        await cb.answer("❌")
+        await cb.answer(f"{SYM_CROSS}")
         return
 
     db.delete_env_var(bot_id, key)
@@ -465,7 +493,7 @@ async def cb_env_del(cb: CallbackQuery):
         )
     except Exception:
         pass
-    await cb.answer(f"🗑 Удалено: {key}")
+    await cb.answer(f"{SYM_DELETE} Удалено: {key}")
 
 
 @router.callback_query(F.data.startswith("env_edit_all:"))
@@ -473,7 +501,7 @@ async def cb_env_edit_all(cb: CallbackQuery, state: FSMContext):
     bot_id = int(cb.data.split(":")[1])
     bot_data = db.get_bot(bot_id)
     if not bot_data or bot_data["user_id"] != cb.from_user.id:
-        await cb.answer("❌")
+        await cb.answer(f"{SYM_CROSS}")
         return
 
     env_vars = db.get_env(bot_id)
@@ -482,7 +510,7 @@ async def cb_env_edit_all(cb: CallbackQuery, state: FSMContext):
     await state.set_state(EditEnv.waiting_all_env)
     await state.update_data(bot_id=bot_id)
     await cb.message.edit_text(
-        f"📋 <b>Редактировать все ENV</b>\n\n"
+        f"{SYM_LIST} <b>Редактировать все ENV</b>\n\n"
         f"Текущие переменные:\n<pre>{env_text or '(пусто)'}</pre>\n\n"
         f"Отправьте новый список в формате KEY=VALUE (каждая с новой строки):",
         parse_mode=ParseMode.HTML,
@@ -496,12 +524,12 @@ async def cb_env_edit_all(cb: CallbackQuery, state: FSMContext):
 async def fsm_env_key(msg: Message, state: FSMContext):
     key = msg.text.strip().upper()
     if not key.replace("_", "").isalnum():
-        await msg.answer("❌ Неверный формат имени. Используйте A-Z, 0-9, _")
+        await msg.answer(f"{SYM_CROSS} Неверный формат имени. Используйте A-Z, 0-9, _")
         return
     await state.update_data(env_key=key)
     await state.set_state(EditEnv.waiting_value)
     await msg.answer(
-        f"✏ Введите значение для <code>{key}</code>:",
+        f"{SYM_EDIT} Введите значение для <code>{key}</code>:",
         parse_mode=ParseMode.HTML,
         reply_markup=utils.cancel_keyboard(),
     )
@@ -522,7 +550,7 @@ async def fsm_env_value(msg: Message, state: FSMContext):
     bot_data = db.get_bot(bot_id)
     env_vars = db.get_env(bot_id)
     await msg.answer(
-        f"✅ Переменная <code>{key}</code> сохранена!\n\n" +
+        f"{SYM_CHECK} Переменная <code>{key}</code> сохранена!\n\n" +
         utils.format_env(bot_data["name"], env_vars),
         reply_markup=utils.env_keyboard(bot_id, env_vars),
         parse_mode=ParseMode.HTML,
@@ -543,7 +571,7 @@ async def fsm_env_all(msg: Message, state: FSMContext):
     bot_data = db.get_bot(bot_id)
     env_vars = db.get_env(bot_id)
     await msg.answer(
-        f"✅ ENV переменные обновлены ({len(env_dict)} шт.)\n\n" +
+        f"{SYM_CHECK} ENV переменные обновлены ({len(env_dict)} шт.)\n\n" +
         utils.format_env(bot_data["name"], env_vars),
         reply_markup=utils.env_keyboard(bot_id, env_vars),
         parse_mode=ParseMode.HTML,
@@ -558,7 +586,7 @@ async def cb_bot_files(cb: CallbackQuery):
     bot_id = int(cb.data.split(":")[1])
     bot_data = db.get_bot(bot_id)
     if not bot_data or bot_data["user_id"] != cb.from_user.id:
-        await cb.answer("❌")
+        await cb.answer(f"{SYM_CROSS}")
         return
 
     files = runner.list_editable_files(cb.from_user.id, bot_id)
@@ -567,7 +595,7 @@ async def cb_bot_files(cb: CallbackQuery):
         return
 
     await cb.message.edit_text(
-        f"📁 <b>Файлы бота</b>: {bot_data['name']}\n\nВыберите файл для просмотра:",
+        f"{SYM_FOLDER} <b>Файлы бота</b>: {bot_data['name']}\n\nВыберите файл для просмотра:",
         reply_markup=utils.files_keyboard(bot_id, files),
         parse_mode=ParseMode.HTML,
     )
@@ -582,12 +610,12 @@ async def cb_file_view(cb: CallbackQuery):
 
     bot_data = db.get_bot(bot_id)
     if not bot_data or bot_data["user_id"] != cb.from_user.id:
-        await cb.answer("❌")
+        await cb.answer(f"{SYM_CROSS}")
         return
 
     ok, content = runner.read_file(cb.from_user.id, bot_id, filename)
     if not ok:
-        await cb.answer(f"❌ {content}", show_alert=True)
+        await cb.answer(f"{SYM_CROSS} {content}", show_alert=True)
         return
 
     MAX_PREVIEW = 3000
@@ -596,7 +624,7 @@ async def cb_file_view(cb: CallbackQuery):
         preview += "\n... (обрезано)"
 
     await cb.message.edit_text(
-        f"📄 <b>{filename}</b>\n\n<pre>{utils._escape_html(preview)}</pre>",
+        f"{SYM_FILE} <b>{filename}</b>\n\n<pre>{utils._escape_html(preview)}</pre>",
         reply_markup=utils.file_view_keyboard(bot_id, filename),
         parse_mode=ParseMode.HTML,
     )
@@ -611,18 +639,18 @@ async def cb_file_edit(cb: CallbackQuery, state: FSMContext):
 
     bot_data = db.get_bot(bot_id)
     if not bot_data or bot_data["user_id"] != cb.from_user.id:
-        await cb.answer("❌")
+        await cb.answer(f"{SYM_CROSS}")
         return
 
     ok, content = runner.read_file(cb.from_user.id, bot_id, filename)
     if not ok:
-        await cb.answer(f"❌ {content}", show_alert=True)
+        await cb.answer(f"{SYM_CROSS} {content}", show_alert=True)
         return
 
     await state.set_state(EditFile.waiting_content)
     await state.update_data(bot_id=bot_id, filename=filename)
     await cb.message.edit_text(
-        f"✏ <b>Редактировать</b>: <code>{filename}</code>\n\n"
+        f"{SYM_EDIT} <b>Редактировать</b>: <code>{filename}</code>\n\n"
         f"Отправьте новое содержимое файла.\n\n"
         f"<i>Текущее содержимое:</i>\n<pre>{utils._escape_html(content[:1000])}</pre>",
         parse_mode=ParseMode.HTML,
@@ -642,12 +670,12 @@ async def fsm_file_content(msg: Message, state: FSMContext):
 
     if ok:
         await msg.answer(
-            f"✅ Файл <code>{filename}</code> сохранён!",
+            f"{SYM_CHECK} Файл <code>{filename}</code> сохранён!",
             parse_mode=ParseMode.HTML,
             reply_markup=utils.main_keyboard(),
         )
     else:
-        await msg.answer(f"❌ Ошибка сохранения: {result}")
+        await msg.answer(f"{SYM_CROSS} Ошибка сохранения: {result}")
 
 
 # ──────────────────────────────────────────────
@@ -658,12 +686,12 @@ async def cb_delete_confirm(cb: CallbackQuery):
     bot_id = int(cb.data.split(":")[1])
     bot_data = db.get_bot(bot_id)
     if not bot_data or bot_data["user_id"] != cb.from_user.id:
-        await cb.answer("❌")
+        await cb.answer(f"{SYM_CROSS}")
         return
 
     await cb.message.edit_text(
-        f"🗑 <b>Удалить бота</b>: {bot_data['name']}\n\n"
-        "⚠️ Это действие необратимо!\n"
+        f"{SYM_DELETE} <b>Удалить бота</b>: {bot_data['name']}\n\n"
+        f"{SYM_WARNING} Это действие необратимо!\n"
         "Все файлы и данные будут удалены.",
         reply_markup=utils.confirm_delete_keyboard(bot_id),
         parse_mode=ParseMode.HTML,
@@ -676,7 +704,7 @@ async def cb_delete_bot(cb: CallbackQuery):
     bot_id = int(cb.data.split(":")[1])
     bot_data = db.get_bot(bot_id)
     if not bot_data or bot_data["user_id"] != cb.from_user.id:
-        await cb.answer("❌")
+        await cb.answer(f"{SYM_CROSS}")
         return
 
     # Stop if running
@@ -691,16 +719,16 @@ async def cb_delete_bot(cb: CallbackQuery):
     db.delete_bot(bot_id)
 
     await cb.message.edit_text(
-        f"🗑 Бот <b>{bot_data['name']}</b> удалён.",
+        f"{SYM_DELETE} Бот <b>{bot_data['name']}</b> удалён.",
         parse_mode=ParseMode.HTML,
     )
-    await cb.answer("✅ Удалено")
+    await cb.answer(f"{SYM_CHECK} Удалено")
 
 
 # ──────────────────────────────────────────────
 # ➕ Create Bot FSM
 # ──────────────────────────────────────────────
-@router.message(F.text == "➕ Создать бота")
+@router.message(F.text == f"{SYM_PLUS} Создать бота")
 async def cmd_create_bot(msg: Message, state: FSMContext):
     user_id = msg.from_user.id
     user = db.get_user(user_id)
@@ -708,7 +736,7 @@ async def cmd_create_bot(msg: Message, state: FSMContext):
 
     if db.count_user_bots(user_id) >= max_bots:
         await msg.answer(
-            f"❌ Достигнут лимит ботов ({max_bots}).\n"
+            f"{SYM_CROSS} Достигнут лимит ботов ({max_bots}).\n"
             "Удалите неиспользуемых ботов.",
             reply_markup=utils.main_keyboard(),
         )
@@ -716,7 +744,7 @@ async def cmd_create_bot(msg: Message, state: FSMContext):
 
     if not db.check_rate_limit(user_id, "create_bot"):
         await msg.answer(
-            "⏳ Слишком много попыток создания. Подождите немного.",
+            f"{SYM_WAIT} Слишком много попыток создания. Подождите немного.",
             reply_markup=utils.main_keyboard(),
         )
         return
@@ -736,10 +764,10 @@ async def fsm_create_source(msg: Message, state: FSMContext):
     if msg.document:
         doc: Document = msg.document
         if not doc.file_name.endswith(".zip"):
-            await msg.answer("❌ Поддерживаются только .zip файлы.")
+            await msg.answer(f"{SYM_CROSS} Поддерживаются только .zip файлы.")
             return
         if doc.file_size and doc.file_size > 50 * 1024 * 1024:
-            await msg.answer("❌ Файл слишком большой (макс 50MB).")
+            await msg.answer(f"{SYM_CROSS} Файл слишком большой (макс 50MB).")
             return
         await state.update_data(source_type="zip", file_id=doc.file_id)
 
@@ -748,14 +776,14 @@ async def fsm_create_source(msg: Message, state: FSMContext):
         url = msg.text.strip()
         if not utils.is_valid_github_url(url):
             await msg.answer(
-                "❌ Неверный URL. Отправьте ссылку GitHub:\n"
+                f"{SYM_CROSS} Неверный URL. Отправьте ссылку GitHub:\n"
                 "<code>https://github.com/user/repo</code>",
                 parse_mode=ParseMode.HTML,
             )
             return
         await state.update_data(source_type="github", url=url)
     else:
-        await msg.answer("❌ Отправьте GitHub ссылку или ZIP архив.")
+        await msg.answer(f"{SYM_CROSS} Отправьте GitHub ссылку или ZIP архив.")
         return
 
     await state.set_state(CreateBot.waiting_name)
@@ -771,7 +799,7 @@ async def fsm_create_source(msg: Message, state: FSMContext):
 async def fsm_create_name(msg: Message, state: FSMContext):
     ok, name = utils.validate_bot_name(msg.text or "")
     if not ok:
-        await msg.answer(f"❌ {name}")
+        await msg.answer(f"{SYM_CROSS} {name}")
         return
 
     await state.update_data(bot_name=name)
@@ -788,7 +816,7 @@ async def fsm_create_name(msg: Message, state: FSMContext):
 async def fsm_create_mainfile(msg: Message, state: FSMContext):
     mainfile = (msg.text or "").strip()
     if not mainfile.endswith(".py"):
-        await msg.answer("❌ Укажите .py файл, например: <code>main.py</code>", parse_mode=ParseMode.HTML)
+        await msg.answer(f"{SYM_CROSS} Укажите .py файл, например: <code>main.py</code>", parse_mode=ParseMode.HTML)
         return
 
     await state.update_data(main_file=mainfile)
@@ -796,7 +824,7 @@ async def fsm_create_mainfile(msg: Message, state: FSMContext):
 
     builder = InlineKeyboardBuilder()
     builder.button(text="⏭ Пропустить", callback_data="create_skip_env")
-    builder.button(text="❌ Отмена", callback_data="cancel")
+    builder.button(text=f"{SYM_CROSS} Отмена", callback_data="cancel")
 
     await msg.answer(
         utils.format_create_step(4, {}),
@@ -832,7 +860,7 @@ async def _finish_create_bot(msg: Message, state: FSMContext, env_dict: dict, us
     source_type = data.get("source_type")
 
     status_msg = await msg.answer(
-        f"⚙️ <b>Создаём бота</b>: {bot_name}\n\n⏳ Загрузка файлов...",
+        f"{SYM_SETTINGS} <b>Создаём бота</b>: {bot_name}\n\n{SYM_WAIT} Загрузка файлов...",
         parse_mode=ParseMode.HTML,
         reply_markup=utils.main_keyboard(),
     )
@@ -872,12 +900,12 @@ async def _setup_bot_task(user_id: int, bot_id: int, bot_name: str,
     try:
         if source_type == "github":
             await update_status(
-                f"⚙️ <b>{bot_name}</b>\n\n📥 Скачиваем с GitHub...\n"
+                f"{SYM_SETTINGS} <b>{bot_name}</b>\n\n{SYM_DOWNLOAD} Скачиваем с GitHub...\n"
                 f"<code>{data['url']}</code>"
             )
             ok, err = await runner.download_github(data["url"], project)
         elif source_type == "zip":
-            await update_status(f"⚙️ <b>{bot_name}</b>\n\n📦 Распаковываем архив...")
+            await update_status(f"{SYM_SETTINGS} <b>{bot_name}</b>\n\n{SYM_PACKAGE} Распаковываем архив...")
             # Download from Telegram
             from aiogram import Bot as ABot
             abot = ABot(token=BOT_TOKEN)
@@ -893,7 +921,7 @@ async def _setup_bot_task(user_id: int, bot_id: int, bot_name: str,
             db.delete_bot(bot_id)
             import shutil
             shutil.rmtree(project, ignore_errors=True)
-            await update_status(f"❌ <b>Ошибка загрузки</b>\n\n{err}")
+            await update_status(f"{SYM_CROSS} <b>Ошибка загрузки</b>\n\n{err}")
             return
 
         # Validate files
@@ -902,28 +930,28 @@ async def _setup_bot_task(user_id: int, bot_id: int, bot_name: str,
             db.delete_bot(bot_id)
             import shutil
             shutil.rmtree(project, ignore_errors=True)
-            await update_status(f"❌ <b>Проверка безопасности не пройдена</b>\n\n{reason}")
+            await update_status(f"{SYM_CROSS} <b>Проверка безопасности не пройдена</b>\n\n{reason}")
             return
 
-        await update_status(f"⚙️ <b>{bot_name}</b>\n\n📦 Устанавливаем зависимости...")
+        await update_status(f"{SYM_SETTINGS} <b>{bot_name}</b>\n\n{SYM_PACKAGE} Устанавливаем зависимости...")
 
         ok, err = await runner.install_dependencies(user_id, bot_id)
         if not ok:
             await update_status(
-                f"⚠️ <b>{bot_name}</b>\n\n"
-                f"Зависимости не установились: {err}\n\n"
-                f"Бот создан, но может не запуститься."
+                f"{SYM_WARNING} <b>{bot_name}</b>\n\n"
+                f"Установка зависимостей завершилась с предупреждением.\n"
+                f"Бот создан и может работать. Подробности смотрите в логах установки."
             )
         else:
             await update_status(
-                f"✅ <b>{bot_name}</b> создан!\n\n"
+                f"{SYM_CHECK} <b>{bot_name}</b> создан!\n\n"
                 f"📄 Файл запуска: <code>{data.get('main_file', 'main.py')}</code>\n"
                 f"🚀 Нажмите <b>▶ Запустить</b> в меню бота.",
             )
 
     except Exception as e:
         logger.exception("Error setting up bot %d", bot_id)
-        await update_status(f"❌ Критическая ошибка: {e}")
+        await update_status(f"{SYM_CROSS} Критическая ошибка: {e}")
 
 
 # ──────────────────────────────────────────────
@@ -932,14 +960,14 @@ async def _setup_bot_task(user_id: int, bot_id: int, bot_name: str,
 @router.callback_query(F.data == "cancel")
 async def cb_cancel(cb: CallbackQuery, state: FSMContext):
     await state.clear()
-    await cb.message.edit_text("❌ Отменено.")
+    await cb.message.edit_text(f"{SYM_CROSS} Отменено.")
     await cb.answer()
 
 
 @router.message(Command("cancel"))
 async def cmd_cancel(msg: Message, state: FSMContext):
     await state.clear()
-    await msg.answer("❌ Отменено.", reply_markup=utils.main_keyboard())
+    await msg.answer(f"{SYM_CROSS} Отменено.", reply_markup=utils.main_keyboard())
 
 
 # ──────────────────────────────────────────────
@@ -950,13 +978,15 @@ async def cmd_admin(msg: Message):
     if msg.from_user.id not in ADMIN_IDS:
         return
     import shutil
+    stats = runner.get_system_stats()
     bots_count = sum(1 for _ in Path("bots").rglob("*/"))
     disk = shutil.disk_usage(".")
     await msg.answer(
-        f"👑 <b>Панель администратора</b>\n\n"
-        f"💾 Диск: {disk.used // 1024 // 1024} / {disk.total // 1024 // 1024} MB\n"
-        f"🤖 Процессов: {len(runner._processes)}\n"
-        f"📊 CPU: {runner.get_system_stats()['cpu_percent']}%\n\n"
+        f"{SYM_ADMIN} <b>Панель администратора</b>\n\n"
+        f"{SYM_DISK} Диск: {disk.used // 1024 // 1024} / {disk.total // 1024 // 1024} MB\n"
+        f"{SYM_BOT} Процессов: {len(runner._processes)}\n"
+        f"{SYM_DISK} RAM: {stats.get('ram_used_mb', 0)} / {stats.get('ram_total_mb', 0)} MB\n"
+        f"{SYM_CPU} CPU: {stats.get('cpu_percent', 0)}%\n\n"
         f"/admin_ban [user_id] — Заблокировать\n"
         f"/admin_stats — Полная статистика",
         parse_mode=ParseMode.HTML,
@@ -976,9 +1006,9 @@ async def cmd_admin_ban(msg: Message):
         with db.get_conn() as conn:
             conn.execute("UPDATE users SET is_banned=1 WHERE user_id=?", (target_id,))
         db._cache_del(f"user:{target_id}")
-        await msg.answer(f"✅ Пользователь {target_id} заблокирован.")
+        await msg.answer(f"{SYM_CHECK} Пользователь {target_id} заблокирован.")
     except ValueError:
-        await msg.answer("❌ Неверный ID")
+        await msg.answer(f"{SYM_CROSS} Неверный ID")
 
 
 # ──────────────────────────────────────────────
