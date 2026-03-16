@@ -226,13 +226,10 @@ def format_welcome(stats: dict, user_name: str) -> str:
     cpu = stats.get("cpu_percent", 0)
 
     return (
-        f"{SYM_LAUNCH} <b>Telegram Bot Hosting</b>\n\n"
-        f"Привет, <b>{user_name}</b>! {SYM_USER}\n"
-        f"Добро пожаловать в систему управления ботами.\n\n"
+        f"{SYM_LAUNCH} <b>dreinn.host</b>\n\n"
+        f"Привет, <b>{user_name}</b>! {SYM_USER}\n\n"
         f"{SYM_STATS} Активные боты: <b>{active}</b>\n"
         f"{SYM_BOT} Всего ботов: <b>{bots_count}</b>\n"
-        f"{SYM_DISK} RAM: <b>{ram} MB</b>\n"
-        f"{SYM_CPU} CPU: <b>{cpu}%</b>\n\n"
         f"Выберите действие в меню ниже."
     )
 
