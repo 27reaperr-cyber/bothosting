@@ -857,10 +857,15 @@ async def _finish_create_bot(msg: Message, state: FSMContext, env_dict: dict, us
 async def _setup_bot_task(user_id: int, bot_id: int, bot_name: str,
                            source_type: str, data: dict, status_msg: Message):
     async def update_status(text: str):
+        nonlocal status_msg
         try:
             await status_msg.edit_text(text, parse_mode=ParseMode.HTML)
         except Exception:
-            pass
+            # If edit fails (e.g. message not found), send a new status message.
+            try:
+                status_msg = await status_msg.answer(text, parse_mode=ParseMode.HTML)
+            except Exception:
+                pass
 
     project = runner.bot_dir(user_id, bot_id)
 

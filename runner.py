@@ -183,13 +183,19 @@ async def extract_zip(zip_path: Path, dest: Path) -> tuple[bool, str]:
                 return False, "Extracted size exceeds 50MB limit"
             zf.extractall(tmp_extract)
 
-        # Flatten: if single top-level dir, move its contents up
+        # Flatten: if single top-level dir, move it to dest; otherwise move tmp_extract.
         top_dirs = list(tmp_extract.iterdir())
-        if len(top_dirs) == 1 and top_dirs[0].is_dir():
-            shutil.move(str(top_dirs[0]), str(dest))
+        src_root = top_dirs[0] if len(top_dirs) == 1 and top_dirs[0].is_dir() else tmp_extract
+
+        # Ensure dest is clean so we don't nest into an existing folder.
+        if dest.exists():
+            shutil.rmtree(dest, ignore_errors=True)
+
+        shutil.move(str(src_root), str(dest))
+
+        # Cleanup leftover temp folder if needed
+        if tmp_extract.exists():
             shutil.rmtree(tmp_extract, ignore_errors=True)
-        else:
-            shutil.move(str(tmp_extract), str(dest))
 
         zip_path.unlink(missing_ok=True)
         return True, "ok"
